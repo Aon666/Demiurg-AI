@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+
+.vscode/
+.idea/
+
+data/
+.env
+
+demiurg_ai_projekt_roadmap.md
