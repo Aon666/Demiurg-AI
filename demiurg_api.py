@@ -5,7 +5,7 @@ from pgvector.psycopg import register_vector
 import ollama
 from typing import Optional, Dict, Any
 
-app = FastAPI(
+demiurg_api = FastAPI(
     title="Demiurg-AI API",
     description="Local-First RAG Assistant for TTRPG Worldbuilding & Lore Management",
     version="1.0"
@@ -22,7 +22,7 @@ def get_embedding(text: str) -> list[float]:
     response = ollama.embeddings(model="nomic-embed-text", prompt=text)
     return response["embedding"]
 
-@app.post("/ask")
+@demiurg_api.post("/ask")
 def ask_demiurg_endpoint(req: QueryRequest):
     try:
         query_vec = get_embedding(req.question)
@@ -106,4 +106,4 @@ def ask_demiurg_endpoint(req: QueryRequest):
 
 if __name__     == "__main__":
     import uvicorn
-    uvicorn.run("demiurg_api:demiurg_api" if __name__ == "__main__" else "demiurg_api", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("demiurg_api:demiurg_api", host="127.0.0.1", port=8000, reload=True)
