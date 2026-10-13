@@ -28,10 +28,10 @@ def test_search(query: str):
             
             for row in results:
                 file_path, header_path, metadata, content, distance = row
-                print(f"\n--- Treffer (Distanz: {distance:.4f}) ---")
-                print("Datei: {file_path} [{header_path}]")
-                print("Metadaten: {metadata}")
-                print("Inhalt:\n{content.strip()}")
+                print(f"\n--- Hits (Distance: {distance:.4f}) ---")
+                print("File: {file_path} [{header_path}]")
+                print("Metadata: {metadata}")
+                print("Content:\n{content.strip()}")
 
 if __name__ == "__main__":
-    test_search("Wo bauen die Zwerge Erze ab?")
+    test_search("Where do dwarves mine mithril?")

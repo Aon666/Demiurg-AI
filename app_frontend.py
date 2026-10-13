@@ -58,4 +58,4 @@ if st.button("Fragen", type="primary"):
                 st.error(f"Fehler com Server: {response.status_code} - {response.text}")
 
         except requests.exceptions.ConnectionError:
-            st.error("Konnte keine Verbindung zum FastAPI-Backend herstellen. Läuft `phase4_api.py`?")#TODO app namen anpassen, kann nicht phase 4 heißen
+            st.error("Konnte keine Verbindung zum FastAPI-Backend herstellen. Läuft `demiurg_api.py`?")

@@ -7,7 +7,7 @@ from typing import Optional, Dict, Any
 
 app = FastAPI(
     title="Demiurg-AI API",
-    description="Lokales RAG-Backend für TTRPG-Worldbuilding und Lore-Management",
+    description="Local-First RAG Assistant for TTRPG Worldbuilding & Lore Management",
     version="1.0"
 )
 
@@ -27,7 +27,7 @@ def ask_demiurg_endpoint(req: QueryRequest):
     try:
         query_vec = get_embedding(req.question)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Fehler bei der Embedding-Generierung: {e}")
+        raise HTTPException(status_code=500, detail=f"Error in the embedding encoding: {e}")
 
     where_clauses = []
     sql_params = [query_vec]
@@ -58,11 +58,11 @@ def ask_demiurg_endpoint(req: QueryRequest):
                 cur.execute(query, sql_params)
                 results = cur.fetchall()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Datenbankfehler: {e}")
+        raise HTTPException(status_code=500, detail=f"Database-Error: {e}")
 
     if not results:
         return {
-            "answer": "Keine passende Lore-Einträge gefunden.",
+            "answer": "No fitting Lore-Entries found.",
             "sources": []
         }
 
@@ -81,12 +81,12 @@ def ask_demiurg_endpoint(req: QueryRequest):
     combined_context = "\n\n---\n\n".join(context_chunks)
 
     system_prompt = (
-        "Du bist Demiurg-AI, eine exakte Worldbuilding-Datenbank. "
-        "Beantworte die Frage AUSSCHLIESSLICH und wortgetreu basierend auf dem bereitgestellten Kontext. "
-        "ERFINDE KEINE Details, Eigennamen, Orte oder Hintergrundgeschichten hinzu, die nicht explizit im Kontext stehen. "
-        "Wenn der Kontext die Antwort nicht hergibt, sage das direkt und spekuliere nicht."
+        "You are Demiurg-AI, a precise world-building database. "
+        "Answer the question EXCLUSIVELY and verbatim based on the provided context."
+        "DO NOT INVENT any details, proper nouns, locations, or backstories that are not explicitly mentioned in the context."
+        "If the context does not provide the answer, state that directly and do not speculate."
     )
-    user_prompt = f"Kontext:\n{combined_context}\n\nFrage: {req.question}"
+    user_prompt = f"Context:\n{combined_context}\n\nQuestion: {req.question}"
 
     try:
         response = ollama.chat(
@@ -97,7 +97,7 @@ def ask_demiurg_endpoint(req: QueryRequest):
             ]
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Fehler bei der LLM-Generierung: {e}")
+        raise HTTPException(status_code=500, detail=f"Error in the LLM-Generation: {e}")
 
     return {
         "answer": response["message"]["content"].strip(),
@@ -106,4 +106,4 @@ def ask_demiurg_endpoint(req: QueryRequest):
 
 if __name__     == "__main__":
     import uvicorn
-    uvicorn.run("phase4_api:phase4_api" if __name__ == "__main__" else "phase4_api", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("demiurg_api:demiurg_api" if __name__ == "__main__" else "demiurg_api", host="127.0.0.1", port=8000, reload=True)

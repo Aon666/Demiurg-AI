@@ -9,8 +9,7 @@ import ollama
 
 DB_PARAMS = "host=localhost port=5432 dbname=worldsmith user=postgres password=postgrespassword"
 
-def setup_phase2_database(conn):
-    """Aktualisiert das Schema für Metadaten, JSONB und Datei-Hashes."""
+def setup_database(conn):
     with conn.cursor() as cur:
         cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
         cur.execute("""
@@ -27,7 +26,6 @@ def setup_phase2_database(conn):
     conn.commit()
 
 def get_file_hash(file_path: str) -> str:
-    """Berechnet einen MD5-Hash des Dateiinhaltes zur Änderungserkennung."""
     hasher = hashlib.md5()
     with open(file_path, "rb") as f:
         buf = f.read()
@@ -35,12 +33,10 @@ def get_file_hash(file_path: str) -> str:
     return hasher.hexdigest()
 
 def get_embedding(text: str) -> list[float]:
-    """Generiert ein Embedding-Vektor für einen Text über Ollama."""
     response = ollama.embeddings(model="nomic-embed-text", prompt=text)
     return response["embedding"]
 
 def process_markdown_file(file_path: str) -> list[dict]:
-    """Liest eine Markdown-Datei, parst YAML-Frontmatter und chunkt nach Headern."""
     post = frontmatter.load(file_path)
     yaml_metadata = post.metadata
     raw_content = post.content
@@ -73,15 +69,15 @@ def process_markdown_file(file_path: str) -> list[dict]:
     return chunks
 
 def run_ingestion():
-    print("Starte Demiurg-AI Ingestion-Pipeline...")
+    print("Start Demiurg-AI Ingestion-Pipeline...")
     
     with psycopg.connect(DB_PARAMS) as conn:
         register_vector(conn)
-        setup_phase2_database(conn)
+        setup_database(conn)
         
         md_files = glob.glob("data/*.md")
         if not md_files:
-            print("Keine Markdown-Dateien im Ordner 'data/' gefunden!")
+            print("No Markdown-Files found in data/...")
             return
 
         with conn.cursor() as cur:
@@ -95,15 +91,15 @@ def run_ingestion():
                 
                 # Prüfen, ob die Datei bereits in der DB existiert und unverändert ist
                 if file_path in db_files and db_files[file_path] == current_hash:
-                    print(f"[Übersprungen] Unverändert: {file_path}")
+                    print(f"[Skipped] Unchanged: {file_path}")
                     continue
                 
                 # Falls Datei neu oder geändert: Alte Chunks dieser Datei löschen
                 if file_path in db_files:
-                    print(f"[Aktualisierung] Datei hat sich geändert: {file_path}")
+                    print(f"[Update] File has changed: {file_path}")
                     cur.execute("DELETE FROM lore_chunks WHERE file_path = %s;", (file_path,))
                 else:
-                    print(f"[Neu] Verarbeite neue Datei: {file_path}")
+                    print(f"[New] Process new file: {file_path}")
 
                 chunks = process_markdown_file(file_path)
                 for chunk in chunks:
@@ -125,7 +121,7 @@ def run_ingestion():
                     total_new_chunks += 1
 
         conn.commit()
-        print(f"\nIngestion abgeschlossen! {total_new_chunks} neue/aktualisierte Chunks verarbeitet.")
+        print(f"\nIngestion finished! {total_new_chunks} new/updated Chunks processed.")
 
 if __name__ == "__main__":
     run_ingestion()
