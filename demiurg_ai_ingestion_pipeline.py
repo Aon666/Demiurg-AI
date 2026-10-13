@@ -80,7 +80,7 @@ def run_ingestion():
         register_vector(conn)
         setup_database(conn)
         
-        md_files = glob.glob("C:/Users/Anton/Meine Ablage/DriveSyncFiles/Miranien/MiranienVault/**/*.md", recursive=True)
+        md_files = glob.glob("data/*.md")
         if not md_files:
             print("No Markdown-Files found in data/...")
             return
