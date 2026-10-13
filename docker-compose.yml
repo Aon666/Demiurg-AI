@@ -3,17 +3,17 @@ version: '3.8'
 services:
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: worldsmith_db
+    container_name: demiurg_db
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgrespassword
-      POSTGRES_DB: worldsmith
+      POSTGRES_DB: demiurg
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data  # <-- Hier wurde der Bindestrich korrigiert
+      - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d worldsmith"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d demiurg"]
       interval: 5s
       timeout: 5s
       retries: 5
