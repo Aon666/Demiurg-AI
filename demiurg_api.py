@@ -82,7 +82,6 @@ def ask_demiurg_endpoint(req: QueryRequest):
 
     system_prompt = (
         "You are Demiurg-AI, a precise world-building database. "
-        "Answer the question EXCLUSIVELY and verbatim based on the provided context."
         "DO NOT INVENT any details, proper nouns, locations, or backstories that are not explicitly mentioned in the context."
         "If the context does not provide the answer, state that directly and do not speculate."
     )

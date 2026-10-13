@@ -4,10 +4,10 @@ import hashlib
 import frontmatter
 import psycopg
 from pgvector.psycopg import register_vector
-from langchain_text_splitters import MarkdownHeaderTextSplitter
+from langchain_text_splitters import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
 import ollama
 
-DB_PARAMS = "host=localhost port=5432 dbname=worldsmith user=postgres password=postgrespassword"
+DB_PARAMS = "host=localhost port=5432 dbname=demiurg user=postgres password=postgrespassword"
 
 def setup_database(conn):
     with conn.cursor() as cur:
@@ -50,7 +50,12 @@ def process_markdown_file(file_path: str) -> list[dict]:
         headers_to_split_on=headers_to_split_on,
         strip_headers=False
     )
-    splits = markdown_splitter.split_text(raw_content)
+    header_splits = markdown_splitter.split_text(raw_content)
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=2500,
+        chunk_overlap=200
+    )
+    splits = text_splitter.split_documents(header_splits)
 
     file_hash = get_file_hash(file_path)
     chunks = []
@@ -75,18 +80,28 @@ def run_ingestion():
         register_vector(conn)
         setup_database(conn)
         
-        md_files = glob.glob("data/*.md")
+        md_files = glob.glob("C:/Users/Anton/Meine Ablage/DriveSyncFiles/Miranien/MiranienVault/**/*.md", recursive=True)
         if not md_files:
             print("No Markdown-Files found in data/...")
             return
 
         with conn.cursor() as cur:
-            # Aktuell gespeicherte Hashes aus der DB auslesen
             cur.execute("SELECT DISTINCT file_path, file_hash FROM lore_chunks;")
             db_files = {row[0]: row[1] for row in cur.fetchall()}
 
             total_new_chunks = 0
             for file_path in md_files:
+
+                try:
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        file_content = f.read()
+                        if "NoIngest" in file_content:
+                            print(f"[Ignored] NoIngest tag found: {file_path}")
+                            continue
+                except Exception as e:
+                    print(f"[Warning] Could not read file {file_path}: {e}")
+                    continue
+
                 current_hash = get_file_hash(file_path)
                 
                 # Prüfen, ob die Datei bereits in der DB existiert und unverändert ist
