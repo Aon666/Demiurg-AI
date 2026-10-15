@@ -21,7 +21,7 @@ with st.sidebar:
     if use_region_filter:
         region_value = st.selectbox("Region wählen", ["North", "South", "East", "West"])#TODO Regionen sind zu generisch, müssen sich dem Datensatz anpassen
 
-    top_k = st.slider("Anzahl Chunks (Top-K)", min_value=1, max_value=5, value=2)
+    top_k = st.slider("Anzahl Chunks (Top-K)", min_value=1, max_value=5, value=4)
 
 user_question = st.text_input("Stelle eine Frage an deine Spielwelt:", placeholder="Z.B. Wo kann man Mithril abbauen?")
 

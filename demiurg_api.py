@@ -4,6 +4,8 @@ import psycopg
 from pgvector.psycopg import register_vector
 import ollama
 from typing import Optional, Dict, Any, List, Tuple
+import numpy as np
+from sentence_transformers import CrossEncoder
 
 demiurg_api = FastAPI(
     title="Demiurg-AI API",
@@ -13,10 +15,13 @@ demiurg_api = FastAPI(
 
 DB_PARAMS = "host=localhost port=5432 dbname=demiurg user=postgres password=postgrespassword"
 
+reranker = CrossEncoder("BAAI/bge-reranker-base", local_files_only=True)
+
 class QueryRequest(BaseModel):
     question: str
     filters: Optional[Dict[str, Any]] = None
     top_k: int = 2
+
 
 def get_embedding(text: str) -> list[float]:
     response = ollama.embeddings(model="nomic-embed-text", prompt=text)
@@ -42,6 +47,7 @@ def semantic_search(where_sql: list[str], sql_params: list[str]) -> List[Tuple[s
         raise HTTPException(status_code=500, detail=f"Database-Error: {e}")
 
     return results
+
 
 def fulltext_search(search_term, where_sql, top_k, filter_params) -> List[Tuple[str, Optional[str], str, float]]:
     # TODO dynamische Sprachselektion
@@ -102,6 +108,24 @@ def reciprocal_rank_fusion_extended(semanticList, indexedList, k=60) -> List[Tup
     sorted_fusion = sorted(rrf_scores.values(), key=lambda x: x["score"], reverse=True)
     return sorted_fusion
 
+
+def rerank_documents(query: str, retrieved_docs: List[Dict[str, any]], top_k: int = 3) -> list[str]:
+    contents = [item["content"] for item in retrieved_docs]
+
+    if not contents:
+        return []
+
+    pairs = [[query, doc] for doc in contents]
+
+    scores = reranker.predict(pairs)
+    scored_docs = sorted(zip(retrieved_docs, scores), key=lambda x: x[1], reverse=True)
+    best_docs = [doc for doc, score in scored_docs[:top_k]]
+
+    return best_docs
+
+
+
+
 @demiurg_api.post("/ask")
 def ask_demiurg_endpoint(req: QueryRequest):
     try:
@@ -122,11 +146,11 @@ def ask_demiurg_endpoint(req: QueryRequest):
         where_sql = "WHERE " + "AND ".join(where_clauses)
 
 
-    semantic_params = [query_vec] + filter_values_only + [req.top_k]
+    semantic_params = [query_vec] + filter_values_only + [20]
     # TODO async aufrufe der Suchvorgänge
     results = semantic_search(where_sql, semantic_params)
     # TODO index search
-    index_results = fulltext_search(req.question, where_sql, req.top_k, filter_values_only)
+    index_results = fulltext_search(req.question, where_sql, 20, filter_values_only)
 
     if not results:
         return {
@@ -137,10 +161,12 @@ def ask_demiurg_endpoint(req: QueryRequest):
     #TODO null check index
 
     ranked_list = reciprocal_rank_fusion_extended(results, index_results)
+
+    reranked_list = rerank_documents(req.question, ranked_list, req.top_k)
     
     context_chunks = []
     sources = []
-    for row in ranked_list:
+    for row in reranked_list:
         score = row["score"]
         file_path = row["file_path"]
         header_path = row["header_path"]
