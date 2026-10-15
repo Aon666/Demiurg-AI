@@ -21,6 +21,9 @@
   * Dynamic SQL Query Builder inside the FastAPI backend allows flexible, runtime JSONB metadata filtering (e.g., filter by region, category, or tags).
 * **Strict Prompting Against Hallucinations:** Hardened system prompting strictly restricts the LLM to synthesized answers based solely on retrieved chunks.
 * **FastAPI Backend & Streamlit Frontend:** Decoupled architecture featuring a REST API with automatic Swagger documentation and an extensible web user interface.
+* **Cross-Encoder Reranking:**
+  * Applies deep-learning semantic re-scoring on the initial retrieval pool using a local cross-encoder model (`sentence-transformers`).
+  * Evaluates query-document pairs simultaneously to filter out noise, bridging the gap between broad hybrid search and absolute precision before feeding the top chunks to the LLM.
 
 ---
 
@@ -33,3 +36,4 @@
 * **LLM & Embeddings Orchestration:** Ollama (`llama3.2:3b`, `nomic-embed-text`)
 * **Database Driver:** `psycopg` (v3) with native `pgvector` registration
 * **Parsing:** `python-frontmatter`
+* **Reranking:** `sentence-transformers` (Cross-Encoder)
