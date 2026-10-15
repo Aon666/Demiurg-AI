@@ -13,6 +13,9 @@
   * Parses YAML frontmatter (regions, domains, tags).
   * **Header-Aware Chunking:** Splits text along Markdown headings (`#`, `##`, `###`) to preserve semantic context.
   * **Incremental Updates (MD5 Hashes):** Tracks file hashes in PostgreSQL to re-embed only new or modified files during re-runs.
+* **Hybrid Search & Reciprocal Rank Fusion (RRF):**
+  * Combines semantic vector similarity (`pgvector`) with full-text keyword search (`tsvector` / `tsquery`) in PostgreSQL.
+  * Harmonizes and merges results using **Reciprocal Rank Fusion (RRF)** to ensure both conceptual alignment and exact matches for proper nouns, factions, or item names.
 * **Vector Database & Dynamic Query Builder:**
   * Powered by **PostgreSQL** with the `pgvector` extension.
   * Dynamic SQL Query Builder inside the FastAPI backend allows flexible, runtime JSONB metadata filtering (e.g., filter by region, category, or tags).
