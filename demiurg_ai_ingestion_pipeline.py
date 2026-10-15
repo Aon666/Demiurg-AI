@@ -20,7 +20,8 @@ def setup_database(conn):
                 header_path TEXT,
                 content TEXT NOT NULL,
                 metadata JSONB,
-                embedding vector(768)
+                embedding vector(768),
+                content_vector tsvector NOT NULL
             );
         """)
     conn.commit()
@@ -35,6 +36,13 @@ def get_file_hash(file_path: str) -> str:
 def get_embedding(text: str) -> list[float]:
     response = ollama.embeddings(model="nomic-embed-text", prompt=text)
     return response["embedding"]
+
+def get_index(text: str):
+    with psycopg.connect(DB_PARAMS) as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT to_tsvector('english', %s);", (text,))
+            return cur.fetchone()[0]
+            
 
 def process_markdown_file(file_path: str) -> list[dict]:
     post = frontmatter.load(file_path)
@@ -77,10 +85,10 @@ def run_ingestion():
     print("Start Demiurg-AI Ingestion-Pipeline...")
     
     with psycopg.connect(DB_PARAMS) as conn:
-        register_vector(conn)
         setup_database(conn)
+        register_vector(conn)
         
-        md_files = glob.glob("data/*.md")
+        md_files = glob.glob("data/*.md",)
         if not md_files:
             print("No Markdown-Files found in data/...")
             return
@@ -91,7 +99,6 @@ def run_ingestion():
 
             total_new_chunks = 0
             for file_path in md_files:
-
                 try:
                     with open(file_path, "r", encoding="utf-8") as f:
                         file_content = f.read()
@@ -116,13 +123,22 @@ def run_ingestion():
                 else:
                     print(f"[New] Process new file: {file_path}")
 
+
+                cur.execute(
+                "SELECT column_name FROM information_schema.columns WHERE table_name ="
+                " 'lore_chunks';"
+                )
+                print(cur.fetchall())
+
+
                 chunks = process_markdown_file(file_path)
                 for chunk in chunks:
                     vec = get_embedding(chunk["content"])
+                    idx = get_index(chunk["content"])
                     cur.execute(
                         """
-                        INSERT INTO lore_chunks (file_path, file_hash, header_path, content, metadata, embedding)
-                        VALUES (%s, %s, %s, %s, %s, %s::vector)
+                        INSERT INTO lore_chunks (file_path, file_hash, header_path, content, metadata, embedding, content_vector)
+                        VALUES (%s, %s, %s, %s, %s, %s::vector, %s::tsvector)
                         """,
                         (
                             chunk["file_path"],
@@ -130,7 +146,8 @@ def run_ingestion():
                             chunk["header_path"],
                             chunk["content"],
                             psycopg.types.json.Jsonb(chunk["metadata"]),
-                            vec
+                            vec,
+                            idx
                         )
                     )
                     total_new_chunks += 1

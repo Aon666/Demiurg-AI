@@ -50,7 +50,7 @@ if st.button("Fragen", type="primary"):
                     sources = data.get("sources", [])
                     if sources:
                         for i, src in enumerate(sources, 1):
-                            st.markdown(f"**{i}. Datei:** `{src['file_path']}` `[{src['header_path']}]` *(Distanz: {src['distance']:.4f})*")
+                            st.markdown(f"**{i}. Datei:** `{src['file_path']}` `[{src['header_path']}]` *(Distanz: {src['distance']})*")
                     else:
                         st.info("Keine spezifische Quellen übergeben.")
 
